@@ -1262,7 +1262,7 @@ function makeCatcher(){
   var m;
   if(B.ShadowOnlyMaterial){
     m = new B.ShadowOnlyMaterial("soloSombra", scene);
-    m.activeLight = sun; m.alpha = 0.40;
+    m.activeLight = sun; m.alpha = 0.48;
   } else {
     m = new B.StandardMaterial("soloSombra", scene); m.alpha = 0;
   }
@@ -1302,7 +1302,7 @@ function setPhotoMode(on){
   world.forEach(function(m){ m.setEnabled(!on); });
   if(waterMesh) waterMesh.setEnabled(!on);
   skybox.setEnabled(!on);
-  zoneMeshes.forEach(function(m){ m.setEnabled(!on && showZones); });
+  zoneMeshes.forEach(function(m){ m.setEnabled(showZones); });
   if(!catcher) makeCatcher();
   catcher.setEnabled(on);
   scene.clearColor = on ? new B.Color4(0,0,0,0) : new B.Color4(0.55,0.68,0.8,1);
@@ -1311,11 +1311,13 @@ function setPhotoMode(on){
     scene.activeCamera = camPhoto;
     try{ camera.detachControl(canvas); }catch(e){}
     S.hour = 13.75;                       /* la hora en que se tomó la foto */
+    scene.imageProcessingConfiguration.contrast = 1.25;
     hourEl.value = S.hour; hourVal.textContent = fmtHour(S.hour);
     applySun();
     readout.textContent = "Montaje sobre la foto · arrastra los muebles; la cámara queda fija";
   } else {
     scene.activeCamera = camera;
+    scene.imageProcessingConfiguration.contrast = 1.12;
     try{ camera.attachControl(canvas, true); }catch(e){}
     sync();
   }
