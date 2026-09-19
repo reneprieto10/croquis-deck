@@ -622,9 +622,19 @@ var MAT = {
   pot:   pbrFoto("mPot",   "stone", {tint:"#b7b0a5", scale:1.5}),
   coping:pbrFoto("mCop",   "stone", {tint:"#a9a4a2", scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#2f4a2c", scale:2})
+  conifer: pbrFoto("mConif","leaves",{tint:"#2f4a2c", scale:2}),
+  hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#42592c", scale:1.3}),
+  hedgeB: pbrFoto("mHedgeB","leaves",{tint:"#5c7a3e", scale:1.1}),
+  hedgeC: pbrFoto("mHedgeC","leaves",{tint:"#6e8c47", scale:1.5})
 };
 MAT.canopy.backFaceCulling = false;
+var VERDES = [MAT.hedgeA, MAT.hedgeB, MAT.hedgeC];
+function verde(){ return VERDES[(Math.random()*VERDES.length)|0]; }
+function irregular(m){
+  m.scaling.set(0.78+Math.random()*0.5, 0.70+Math.random()*0.45, 0.78+Math.random()*0.5);
+  m.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
+  return m;
+}
 
 /* UV en coordenadas de mundo: la textura mantiene su escala real en todas las piezas */
 function worldUV(mesh, tile){
@@ -804,9 +814,9 @@ function buildWorld(){
   var i, n = Math.ceil(wallLen/1.15);
   for(i=0;i<n;i++){
     var b = B.MeshBuilder.CreateSphere("bush"+i, {diameter:1.4+Math.random()*0.9, segments:6}, scene);
-    b.position.set(-5 + i*1.05 + Math.random()*0.35, WALL_H+2.25+Math.random()*0.65, -0.85+Math.random()*0.45);
-    b.scaling.set(1, 0.9, 0.85);
-    addWorld(b, MAT.hedge, TILE.leaves);
+    b.position.set(-5 + i*1.05 + Math.random()*0.35, WALL_H+2.2+Math.random()*0.7, -0.85+Math.random()*0.45);
+    irregular(b);
+    addWorld(b, verde(), 0);
   }
   /* setos laterales */
   [{x:-1.5, name:"hedgeW"}, {x:W+1.5, name:"hedgeE"}].forEach(function(s2){
@@ -815,10 +825,10 @@ function buildWorld(){
     addWorld(hs, MAT.hedge, TILE.leaves);
     var m2 = Math.ceil((D+7)/1.2), q;
     for(q=0;q<m2;q++){
-      var bb = B.MeshBuilder.CreateSphere(s2.name+"b"+q, {diameter:1.2+Math.random()*0.6, segments:6}, scene);
-      bb.position.set(s2.x+(Math.random()-0.5)*0.3, 2.7+Math.random()*0.45, D/2-1.5-(D+7)/2 + q*1.2);
-      bb.scaling.set(0.85, 0.8, 1);
-      addWorld(bb, MAT.hedge, TILE.leaves);
+      var bb = B.MeshBuilder.CreateSphere(s2.name+"b"+q, {diameter:1.2+Math.random()*0.7, segments:6}, scene);
+      bb.position.set(s2.x+(Math.random()-0.5)*0.3, 2.68+Math.random()*0.5, D/2-1.5-(D+7)/2 + q*1.2);
+      irregular(bb);
+      addWorld(bb, verde(), 0);
     }
   });
 
@@ -833,8 +843,8 @@ function buildWorld(){
       var d = ancho*(0.50 + Math.random()*0.40);
       var f = B.MeshBuilder.CreateSphere("cp"+tag+"_"+j2, {diameter:d, segments:6}, scene);
       f.position.set(cx + Math.cos(ang)*rad, alt*0.62 + (Math.random()-0.25)*alt*0.30, cz + Math.sin(ang)*rad);
-      f.scaling.set(1, 0.82, 1);
-      addWorld(f, MAT.leaf, 0);
+      irregular(f);
+      addWorld(f, verde(), 0);
     }
   }
   function cipres(cx, cz, alt, tag){
