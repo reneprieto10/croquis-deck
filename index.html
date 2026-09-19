@@ -554,10 +554,39 @@ function T(file, linear, scl){
   if(scl){ t.uScale = scl; t.vScale = scl; }
   return t;
 }
+/* toma la foto del material, la lleva a luminancia y la tiñe: conserva todo el
+   detalle real pero con el color que corresponde a este patio */
+function texTint(name, file, tint, gain){
+  var SZ = 1024;
+  var dt = new B.DynamicTexture(name, {width:SZ, height:SZ}, scene, true);
+  dt.wrapU = dt.wrapV = B.Texture.WRAP_ADDRESSMODE;
+  dt.anisotropicFilteringLevel = 8;
+  var c = B.Color3.FromHexString(tint), img = new Image();
+  img.onload = function(){
+    var ctx = dt.getContext();
+    ctx.drawImage(img, 0, 0, SZ, SZ);
+    var d = ctx.getImageData(0,0,SZ,SZ), p = d.data, i, l;
+    for(i=0;i<p.length;i+=4){
+      l = (0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2]) * gain;
+      p[i]   = Math.min(255, l*c.r);
+      p[i+1] = Math.min(255, l*c.g);
+      p[i+2] = Math.min(255, l*c.b);
+    }
+    ctx.putImageData(d, 0, 0);
+    dt.update(true);
+  };
+  img.src = "assets/tex/" + file;
+  return dt;
+}
 function pbrFoto(name, base, opts){
   opts = opts || {};
   var m = new B.PBRMaterial(name, scene);
-  m.albedoTexture = T(base + "_diff.jpg", false, opts.scale);
+  if(opts.tint){
+    m.albedoTexture = texTint(name+"_alb", base + "_diff.jpg", opts.tint, opts.gain || 1.2);
+    if(opts.scale){ m.albedoTexture.uScale = opts.scale; m.albedoTexture.vScale = opts.scale; }
+  } else {
+    m.albedoTexture = T(base + "_diff.jpg", false, opts.scale);
+  }
   m.bumpTexture = T(base + "_nor.jpg", true, opts.scale);
   m.metallicTexture = T(base + "_arm.jpg", true, opts.scale);
   m.useAmbientOcclusionFromMetallicTextureRed = true;
@@ -565,30 +594,29 @@ function pbrFoto(name, base, opts){
   m.useMetallnessFromMetallicTextureBlue = true;
   m.metallic = 1; m.roughness = 1;          /* mandan los mapas */
   m.environmentIntensity = 1.0;
-  if(opts.tint) m.albedoColor = B.Color3.FromHexString(opts.tint);
   if(opts.rough != null) m.roughness = opts.rough;
   return m;
 }
 var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
-  wood:  pbrFoto("mWood",  "deck",  {tint:"#c9b9a4"}),
-  stone: pbrFoto("mStone", "stone", {tint:"#e8dcc2"}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#9fc26a"}),
-  hedge: pbrFoto("mHedge", "leaves",{tint:"#7ea256"}),
-  teak:  pbrFoto("mTeak",  "deck",  {tint:"#c79a63", scale:3}),
-  cushion: pbrFoto("mCush",  "linen", {tint:"#f2ece0", scale:3}),
-  cushion2:pbrFoto("mCush2", "linen", {tint:"#cfc5b2", scale:3}),
-  canopy:  pbrFoto("mCanopy","linen", {tint:"#f4ecdc", scale:2}),
+  wood:  pbrFoto("mWood",  "deck",  {tint:"#b6a794", gain:1.15}),
+  stone: pbrFoto("mStone", "stone", {tint:"#eadfc6", gain:1.25}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#9ec964", gain:1.45}),
+  hedge: pbrFoto("mHedge", "leaves",{tint:"#7fb054", gain:1.6}),
+  teak:  pbrFoto("mTeak",  "deck",  {tint:"#c08f57", gain:1.2, scale:3}),
+  cushion: pbrFoto("mCush",  "linen", {tint:"#f7f1e6", gain:1.45, scale:3}),
+  cushion2:pbrFoto("mCush2", "linen", {tint:"#ddd3c0", gain:1.4, scale:3}),
+  canopy:  pbrFoto("mCanopy","linen", {tint:"#f9f3e6", gain:1.5, scale:2}),
   tile:  pbr("mTile",  {tex:texTile,  roughness:0.20, metallic:0.02}),
   metal: pbr("mMetal", {color:"#3c3f42", roughness:0.30, metallic:0.9}),
   dark:  pbr("mDark",  {color:"#2a2b2d", roughness:0.42, metallic:0.35}),
-  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#6f9a4e", scale:1.5}),
-  trunk: pbrFoto("mTrunk", "deck",  {tint:"#6b5540", scale:2}),
-  pot:   pbrFoto("mPot",   "stone", {tint:"#cfc6b4", scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#ded3bb", scale:2}),
+  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#74a84a", gain:1.5, scale:1.5}),
+  trunk: pbrFoto("mTrunk", "deck",  {tint:"#7d6449", gain:1.1, scale:2}),
+  pot:   pbrFoto("mPot",   "stone", {tint:"#d9d3c5", gain:1.2, scale:1.5}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#e9e1cd", gain:1.25, scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#4e7340", scale:2})
+  conifer: pbrFoto("mConif","leaves",{tint:"#5a8347", gain:1.35, scale:2})
 };
 MAT.canopy.backFaceCulling = false;
 
@@ -637,7 +665,7 @@ function makeProbe(){
   try{
     hdr = new B.HDRCubeTexture("assets/hdri/sky.hdr", scene, 256, false, true, false, true);
     scene.environmentTexture = hdr;
-    scene.environmentIntensity = 1.0;
+    scene.environmentIntensity = 1.15;
   }catch(e){ hdr = null; }
 }
 
@@ -1258,8 +1286,19 @@ function layout(){
   }
   engine.resize();
 }
+function setPipelines(on){
+  if(on){ applyQuality(); return; }
+  try{
+    if(ssao){ scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline("ssao", camera); ssao.dispose(); ssao = null; }
+  }catch(e){ ssao = null; }
+  try{
+    if(pipeline){ pipeline.dispose(); pipeline = null; }
+  }catch(e){ pipeline = null; }
+  try{ if(scene.prePassRenderer) scene.disablePrePassRenderer(); }catch(e){}
+}
 function setPhotoMode(on){
   photoMode = on;
+  setPipelines(!on);
   world.forEach(function(m){ m.setEnabled(!on); });
   if(waterMesh) waterMesh.setEnabled(!on);
   skybox.setEnabled(!on);
