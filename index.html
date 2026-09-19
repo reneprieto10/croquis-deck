@@ -187,12 +187,12 @@ var byType = {}; CATALOG.forEach(function(c){ byType[c.type]=c; });
 
 /* medidas obtenidas de la foto por fotogrametría */
 var DEFAULT = {
-  deck:{w:15.5, h:6.3},
-  pool:{x:5.0, y:1.0, w:9.6, h:4.4},
+  deck:{w:15.5, h:7.4},
+  pool:{x:5.0, y:2.1, w:9.6, h:4.4},
   hour:16, quality:"alta", items:[], seq:1
 };
 var S = JSON.parse(JSON.stringify(DEFAULT));
-var KEY = "croquis-deck-bjs-v2";   /* v2: medidas y reglas nuevas */
+var KEY = "croquis-deck-bjs-v3";   /* v3: medidas de la foto */
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function loadSaved(){
   try{
@@ -572,7 +572,7 @@ function texTint(name, file, tint, gain){
     var media = (suma/n) || 128;
     for(i=0;i<n;i++){
       /* variación relativa de la foto del material, suavizada, sobre el color real del patio */
-      var k = Math.pow(lum[i]/media, 0.85) * gain;
+      var k = (lum[i]/media) * gain;
       p[i*4]   = Math.min(255, c.r*255*k);
       p[i*4+1] = Math.min(255, c.g*255*k);
       p[i*4+2] = Math.min(255, c.b*255*k);
@@ -606,23 +606,23 @@ function pbrFoto(name, base, opts){
 var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
-  wood:  pbrFoto("mWood",  "deck",  {tint:"#8b8480"}),
-  stone: pbrFoto("mStone", "stone", {tint:"#c6bdb4"}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#6f8443"}),
-  hedge: pbrFoto("mHedge", "leaves",{tint:"#3f4d35"}),
+  wood:  pbrFoto("mWood",  "deck",  {tint:"#a89a94"}),
+  stone: pbrFoto("mStone", "stone", {tint:"#c8c0bb"}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#859a4e"}),
+  hedge: pbrFoto("mHedge", "leaves",{tint:"#5c7a3e"}),
   teak:  pbrFoto("mTeak",  "deck",  {tint:"#a3794c", scale:3}),
-  cushion: pbrFoto("mCush",  "linen", {tint:"#ded8cb", scale:3}),
-  cushion2:pbrFoto("mCush2", "linen", {tint:"#c6bfae", scale:3}),
-  canopy:  pbrFoto("mCanopy","linen", {tint:"#e2dbcc", scale:2}),
+  cushion: pbrFoto("mCush",  "linen", {tint:"#e8e2d6", scale:3}),
+  cushion2:pbrFoto("mCush2", "linen", {tint:"#cdc5b4", scale:3}),
+  canopy:  pbrFoto("mCanopy","linen", {tint:"#efe9dc", scale:2}),
   tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0}),
   metal: pbr("mMetal", {color:"#4a4d50", roughness:0.55, metallic:0.35}),
   dark:  pbr("mDark",  {color:"#2f3133", roughness:0.6, metallic:0.15}),
-  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#4a6b3a", scale:1.5}),
+  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#53753c", scale:1.5}),
   trunk: pbrFoto("mTrunk", "deck",  {tint:"#6a5744", scale:2}),
   pot:   pbrFoto("mPot",   "stone", {tint:"#b7b0a5", scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#c9c2b4", scale:2}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#a9a4a2", scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#35492f", scale:2})
+  conifer: pbrFoto("mConif","leaves",{tint:"#2f4a2c", scale:2})
 };
 MAT.canopy.backFaceCulling = false;
 
@@ -803,9 +803,9 @@ function buildWorld(){
   addWorld(hedge, MAT.hedge, TILE.leaves);
   var i, n = Math.ceil(wallLen/1.15);
   for(i=0;i<n;i++){
-    var b = B.MeshBuilder.CreateSphere("bush"+i, {diameter:1.3+Math.random()*0.7, segments:6}, scene);
-    b.position.set(-5 + i*1.15 + Math.random()*0.3, WALL_H+2.3+Math.random()*0.5, -0.9+Math.random()*0.35);
-    b.scaling.set(1, 0.85, 0.8);
+    var b = B.MeshBuilder.CreateSphere("bush"+i, {diameter:1.4+Math.random()*0.9, segments:6}, scene);
+    b.position.set(-5 + i*1.05 + Math.random()*0.35, WALL_H+2.25+Math.random()*0.65, -0.85+Math.random()*0.45);
+    b.scaling.set(1, 0.9, 0.85);
     addWorld(b, MAT.hedge, TILE.leaves);
   }
   /* setos laterales */
@@ -822,35 +822,44 @@ function buildWorld(){
     }
   });
 
-  /* cipreses altos de los costados, como los de la foto */
-  function conifer(cx, cz, alt, tag){
-    var tr = B.MeshBuilder.CreateCylinder("cf"+tag, {diameterTop:0.16, diameterBottom:0.38, height:alt*0.3, tessellation:8}, scene);
-    tr.position.set(cx, alt*0.15, cz); addWorld(tr, MAT.trunk, 0);
-    var k, lay = 4;
-    for(k=0;k<lay;k++){
-      var frac = k/(lay-1);
-      var cone = B.MeshBuilder.CreateCylinder("cn"+tag+"_"+k, {
-        diameterTop: 0.10 + (1-frac)*0.5,
-        diameterBottom: (2.6 - frac*1.7) * (alt/7),
-        height: alt*0.34, tessellation:12}, scene);
-      cone.position.set(cx, alt*0.26 + frac*alt*0.24 + alt*0.17, cz);
-      addWorld(cone, MAT.conifer, 0);
+  /* arbolado como el de la foto: una pantalla de arbustos redondos sobre el muro,
+     árboles de copa detrás y dos cipreses oscuros y angostos a la derecha */
+  function copa(cx, cz, alt, ancho, tag){
+    var tr = B.MeshBuilder.CreateCylinder("tr"+tag, {diameterTop:0.20, diameterBottom:0.42, height:alt*0.62, tessellation:8}, scene);
+    tr.position.set(cx, alt*0.31, cz); addWorld(tr, MAT.trunk, 0);
+    var j2, n = 9;
+    for(j2=0;j2<n;j2++){
+      var ang = (j2/n)*Math.PI*2 + Math.random(), rad = ancho*0.30*(0.45+Math.random()*0.55);
+      var d = ancho*(0.50 + Math.random()*0.40);
+      var f = B.MeshBuilder.CreateSphere("cp"+tag+"_"+j2, {diameter:d, segments:6}, scene);
+      f.position.set(cx + Math.cos(ang)*rad, alt*0.62 + (Math.random()-0.25)*alt*0.30, cz + Math.sin(ang)*rad);
+      f.scaling.set(1, 0.82, 1);
+      addWorld(f, MAT.leaf, 0);
     }
   }
-  conifer(W+3.2, -0.6, 8.0, "e1");
-  conifer(W+4.6, 3.6, 6.4, "e2");
-  conifer(-3.4, 0.4, 6.8, "w1");
-
-  /* árboles del fondo */
-  [[-6,-3.4,3.8],[W+5,-3.8,4.2],[W*0.45,-4.6,3.2],[W*0.8,-5.2,3.6],[-4.6,5.5,4.0],[W+4.0,7.5,3.6]].forEach(function(t,k){
-    var tr = B.MeshBuilder.CreateCylinder("tr"+k, {diameterTop:0.18, diameterBottom:0.3, height:t[2], tessellation:8}, scene);
-    tr.position.set(t[0], t[2]/2, t[1]); addWorld(tr, MAT.trunk, 1.0);
-    for(var j=0;j<5;j++){
-      var f = B.MeshBuilder.CreateSphere("fol"+k+"_"+j, {diameter:1.8+Math.random()*1.4, segments:6}, scene);
-      f.position.set(t[0]+(Math.random()-.5)*1.5, t[2]+0.4+Math.random()*1.6, t[1]+(Math.random()-.5)*1.5);
-      addWorld(f, MAT.leaf, 1.0);
+  function cipres(cx, cz, alt, tag){
+    var tr = B.MeshBuilder.CreateCylinder("ct"+tag, {diameterTop:0.16, diameterBottom:0.34, height:alt*0.22, tessellation:8}, scene);
+    tr.position.set(cx, alt*0.11, cz); addWorld(tr, MAT.trunk, 0);
+    var k, lay = 5;
+    for(k=0;k<lay;k++){
+      var frac = k/(lay-1);
+      var cono = B.MeshBuilder.CreateCylinder("cc"+tag+"_"+k, {
+        diameterTop: (1 - frac) * 1.05 + 0.10,
+        diameterBottom: (1.95 - frac*1.35) * (alt/8) + 0.25,
+        height: alt*0.26, tessellation:14}, scene);
+      cono.position.set(cx + (Math.random()-0.5)*0.15, alt*0.20 + frac*alt*0.20 + alt*0.13, cz + (Math.random()-0.5)*0.15);
+      addWorld(cono, MAT.conifer, 0);
     }
-  });
+  }
+  cipres(W+2.6, -3.2, 9.5, "e1");
+  cipres(W+4.4, 0.6, 7.0, "e2");
+  cipres(-2.8, -3.0, 7.2, "w1");
+  copa(W*0.25, -4.4, 6.2, 3.6, "a1");
+  copa(W*0.55, -5.2, 6.9, 4.0, "a2");
+  copa(W*0.85, -4.2, 6.0, 3.4, "a3");
+  copa(-5.0, -2.2, 5.6, 3.2, "a4");
+  copa(W+6.5, -4.6, 6.2, 3.6, "a5");
+  copa(W*0.05, -5.5, 5.8, 3.2, "a6");
 
   /* agua */
   buildWater();
@@ -877,9 +886,9 @@ function buildWater(){
     waterMat.waveSpeed = 0.6;
     waterMat.bumpHeight = 0.09;
     waterMat.windDirection = new B.Vector2(1, 0.35);
-    waterMat.waterColor = new B.Color3(0.10, 0.36, 0.46);
+    waterMat.waterColor = new B.Color3(0.16, 0.40, 0.50);
     waterMat.colorBlendFactor = 0.55;
-    waterMat.waterColor2 = new B.Color3(0.06, 0.28, 0.40);
+    waterMat.waterColor2 = new B.Color3(0.09, 0.30, 0.42);
     waterMat.colorBlendFactor2 = 0.62;
     waterMat.alpha = 1.0;
   } else {
