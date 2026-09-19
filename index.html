@@ -377,7 +377,7 @@ camera.fov = 1.18;               /* ~68°, como la cámara del teléfono */
 var sun = new B.DirectionalLight("sun", new B.Vector3(-0.5,-1,0.4), scene);
 sun.intensity = 3.2;
 var sky = new B.HemisphericLight("sky", new B.Vector3(0,1,0), scene);
-sky.intensity = 0.55; sky.diffuse = new B.Color3(0.72,0.82,1); sky.groundColor = new B.Color3(0.28,0.3,0.2);
+sky.intensity = 0.85; sky.diffuse = new B.Color3(1.0,0.97,0.92); sky.groundColor = new B.Color3(0.38,0.36,0.30);
 
 /* ===================== texturas procedurales ===================== */
 function canvasOf(size){ var c = document.createElement("canvas"); c.width=c.height=size; return c; }
@@ -607,20 +607,20 @@ var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
   wood:  pbrFoto("mWood",  "deck",  {tint:"#8d7659", gain:1.35}),
-  stone: pbrFoto("mStone", "stone", {tint:"#cfc7b4", gain:1.35}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#7e9040", gain:1.35}),
+  stone: pbrFoto("mStone", "stone", {tint:"#ded5c0", gain:1.15}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#7e873c", gain:1.0}),
   hedge: pbrFoto("mHedge", "leaves",{tint:"#46603a", gain:1.30}),
   teak:  pbrFoto("mTeak",  "deck",  {tint:"#a07548", gain:1.30, scale:3}),
   cushion: pbrFoto("mCush",  "linen", {tint:"#ece6da", gain:1.25, scale:3}),
   cushion2:pbrFoto("mCush2", "linen", {tint:"#d3cbba", gain:1.25, scale:3}),
   canopy:  pbrFoto("mCanopy","linen", {tint:"#f2ece0", gain:1.25, scale:2}),
-  tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0}),
+  tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0, color:"#cfe6ee"}),
   metal: pbr("mMetal", {color:"#4a4d50", roughness:0.55, metallic:0.35}),
   dark:  pbr("mDark",  {color:"#2f3133", roughness:0.6, metallic:0.15}),
   leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#4e6f3c", gain:1.30, scale:1.5}),
   trunk: pbrFoto("mTrunk", "deck",  {tint:"#6d5742", gain:1.25, scale:2}),
   pot:   pbrFoto("mPot",   "stone", {tint:"#b9b2a6", gain:1.30, scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#cfc7b4", gain:1.30, scale:2}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#ded5c0", gain:1.15, scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
   conifer: pbrFoto("mConif","leaves",{tint:"#2c4429", gain:1.25, scale:2}),
   hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#3c5730", gain:1.30, scale:1.3}),
@@ -681,7 +681,7 @@ function makeProbe(){
   try{
     hdr = new B.HDRCubeTexture("assets/hdri/sky.hdr", scene, 256, false, true, false, true);
     scene.environmentTexture = hdr;
-    scene.environmentIntensity = 0.9;
+    scene.environmentIntensity = 1.05;
   }catch(e){ hdr = null; }
 }
 
@@ -699,7 +699,7 @@ function applySun(){
   var low = 1 - Math.min(1, d.y/0.75);
   sun.diffuse = new B.Color3(1, 1-0.16*low, 1-0.38*low);
   sun.intensity = 1.6 + 2.6*Math.min(1, d.y/0.85);
-  sky.intensity = 0.28 + 0.42*Math.min(1, d.y/0.85);
+  sky.intensity = 0.55 + 0.55*Math.min(1, d.y/0.85);
   scene.imageProcessingConfiguration.exposure = 0.95 + 0.25*Math.min(1, d.y/0.85);
   if(skyMat){
     skyMat.sunPosition = d.scale(300);
@@ -896,9 +896,9 @@ function buildWater(){
     waterMat.waveSpeed = 0.6;
     waterMat.bumpHeight = 0.09;
     waterMat.windDirection = new B.Vector2(1, 0.35);
-    waterMat.waterColor = new B.Color3(0.16, 0.40, 0.50);
-    waterMat.colorBlendFactor = 0.55;
-    waterMat.waterColor2 = new B.Color3(0.09, 0.30, 0.42);
+    waterMat.waterColor = new B.Color3(0.23, 0.52, 0.60);
+    waterMat.colorBlendFactor = 0.72;
+    waterMat.waterColor2 = new B.Color3(0.16, 0.44, 0.55);
     waterMat.colorBlendFactor2 = 0.62;
     waterMat.alpha = 1.0;
   } else {
