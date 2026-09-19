@@ -192,7 +192,7 @@ var DEFAULT = {
   hour:16, quality:"alta", items:[], seq:1
 };
 var S = JSON.parse(JSON.stringify(DEFAULT));
-var KEY = "croquis-deck-bjs-v1";
+var KEY = "croquis-deck-bjs-v2";   /* v2: medidas y reglas nuevas */
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function loadSaved(){
   try{
