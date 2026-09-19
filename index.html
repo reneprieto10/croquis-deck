@@ -57,6 +57,23 @@
   #photo.show{display:block}
   #photo img{display:block; width:100%; border-radius:7px}
   #photo p{margin:5px 3px 1px; font-size:10.5px; color:var(--ink-2)}
+  .mini{border:1px solid var(--glass-line); border-radius:6px; padding:1px 7px; font-size:11px; background:rgba(255,255,255,.07)}
+  .mini:hover{background:rgba(255,255,255,.18)}
+  #tamano{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:5px}
+  #tamano b{color:var(--ink); font-variant-numeric:tabular-nums}
+  #subir{left:50%; top:50%; transform:translate(-50%,-50%); width:min(330px, calc(100% - 32px)); padding:14px; display:flex; flex-direction:column; gap:9px; z-index:12; max-height:86vh; overflow:auto}
+  #subir h2{font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-2); margin:0; font-weight:600}
+  #subir input[type=file]{font-size:12px}
+  #subir .fila{display:flex; align-items:center; gap:8px; font-size:12.5px}
+  #previaCaja{background:
+      linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.08) 75%) 0 0/16px 16px,
+      linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.08) 75%) 8px 8px/16px 16px,
+      rgba(0,0,0,.35);
+    border:1px solid var(--glass-line); border-radius:8px; display:grid; place-items:center; padding:6px}
+  #previa{max-width:100%; height:auto}
+  .chip.solid{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+  .cat .quitar{position:absolute; top:2px; right:4px; font-size:11px; color:var(--ink-2)}
+  .cat{position:relative}
   #boot{position:fixed; inset:0; display:grid; place-items:center; background:var(--paper); z-index:20; text-align:center; padding:24px}
   #boot p{color:var(--ink-2); font-size:13px; max-width:38ch; margin:0}
   #boot .dot{width:9px; height:9px; border-radius:50%; background:var(--accent); margin:0 auto 12px; animation:pulse 1.1s ease-in-out infinite}
@@ -90,7 +107,10 @@
 </div>
 
 <div class="ui glass" id="side">
-  <div><h2>Agregar</h2><div class="catalog" id="catalog"></div></div>
+  <div>
+    <h2>Agregar <button class="mini" id="btnSubir" title="Subir la foto de un mueble">+ foto</button></h2>
+    <div class="catalog" id="catalog"></div>
+  </div>
   <div>
     <h2>Medidas del deck (m)</h2>
     <div class="dims">
@@ -119,9 +139,29 @@
 
 
 
+<div class="ui glass" id="subir" hidden>
+  <h2>Foto de un mueble</h2>
+  <p class="note">Sirve cualquier foto de catálogo: la recorto, la paro sobre el deck y le doy el tamaño real que le digas.</p>
+  <input type="file" id="archivo" accept="image/*">
+  <div id="previaCaja"><canvas id="previa" width="240" height="180"></canvas></div>
+  <label class="fila"><input type="checkbox" id="quitarFondo" checked> Quitar el fondo</label>
+  <label class="fila" for="tolFondo">Cuánto fondo saco</label>
+  <input type="range" id="tolFondo" min="8" max="120" value="40">
+  <div class="dims">
+    <div class="field"><label for="nombreItem">Nombre</label><input id="nombreItem" type="text" value="Mueble"></div>
+    <div class="field"><label for="anchoItem">Ancho real (m)</label><input id="anchoItem" type="number" step="0.05" min="0.1" max="8" value="1.90"></div>
+  </div>
+  <p class="note" id="subirNota"></p>
+  <div class="fila">
+    <button class="chip solid" id="agregarItem">Agregar al catálogo</button>
+    <button class="chip" id="cerrarSubir">Cancelar</button>
+  </div>
+</div>
+
 <div class="ui glass" id="bottom">
   <span id="readout">Toca un mueble para moverlo</span>
   <span id="flag" hidden></span>
+  <span id="tamano" hidden>Ancho <button class="mini" id="menos">−</button><b id="anchoVal">1,90</b> m <button class="mini" id="mas">+</button></span>
   <div class="grow"></div>
   <div class="acts">
     <button class="chip" id="btnRotL">⟲ 15°</button>
@@ -189,7 +229,7 @@ var byType = {}; CATALOG.forEach(function(c){ byType[c.type]=c; });
 var DEFAULT = {
   deck:{w:15.5, h:7.4},
   pool:{x:5.0, y:2.1, w:9.6, h:4.4},
-  hour:16, quality:"alta", items:[], seq:1
+  hour:16, quality:"alta", items:[], seq:1, custom:[], cseq:1
 };
 var S = JSON.parse(JSON.stringify(DEFAULT));
 var KEY = "croquis-deck-bjs-v3";   /* v3: medidas de la foto */
@@ -202,6 +242,10 @@ function loadSaved(){
     d.items = d.items.filter(function(i){ return byType[i.type]; });
     S = d; if(typeof S.hour !== "number") S.hour = 16;
     if(!S.seq) S.seq = 1; if(!S.quality) S.quality = "alta";
+    if(!Array.isArray(S.custom)) S.custom = [];
+    if(!S.cseq) S.cseq = S.custom.length + 1;
+    S.custom.forEach(function(c){ byType[c.type] = c; });
+    S.items = S.items.filter(function(i){ return byType[i.type]; });
     return true;
   }catch(e){ return false; }
 }
@@ -1072,16 +1116,61 @@ var BUILD = {
   }
 };
 
+/* ---- muebles a partir de una foto: recorte parado sobre el deck ---- */
+var MAT_SOMBRA = null;
+function matSombra(){
+  if(MAT_SOMBRA) return MAT_SOMBRA;
+  var c = document.createElement("canvas"); c.width = c.height = 128;
+  var x = c.getContext("2d");
+  var g = x.createRadialGradient(64,64,4, 64,64,62);
+  g.addColorStop(0, "rgba(0,0,0,.55)"); g.addColorStop(0.55, "rgba(0,0,0,.28)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = g; x.fillRect(0,0,128,128);
+  var t = new B.DynamicTexture("tsom", {width:128,height:128}, scene, true);
+  t.getContext().drawImage(c,0,0); t.update(true); t.hasAlpha = true;
+  MAT_SOMBRA = new B.StandardMaterial("msom", scene);
+  MAT_SOMBRA.diffuseTexture = t; MAT_SOMBRA.opacityTexture = t;
+  MAT_SOMBRA.disableLighting = true; MAT_SOMBRA.emissiveColor = new B.Color3(0,0,0);
+  MAT_SOMBRA.diffuseColor = new B.Color3(0,0,0);
+  MAT_SOMBRA.backFaceCulling = false;
+  return MAT_SOMBRA;
+}
+var MATS_CUSTOM = {};
+function matCustom(c){
+  if(MATS_CUSTOM[c.type]) return MATS_CUSTOM[c.type];
+  var m = new B.PBRMaterial("mc_"+c.type, scene);
+  var t = new B.Texture(c.url, scene);
+  t.hasAlpha = true;
+  m.albedoTexture = t;
+  m.useAlphaFromAlbedoTexture = true;
+  m.transparencyMode = B.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+  m.unlit = true;                      /* conserva la luz de la foto original */
+  m.backFaceCulling = false;
+  MATS_CUSTOM[c.type] = m;
+  return m;
+}
+function buildCustom(node, c){
+  var pl = B.MeshBuilder.CreatePlane("cust", {width:c.w, height:c.alto, sideOrientation:B.Mesh.DOUBLESIDE}, scene);
+  pl.parent = node; pl.position.y = c.alto/2;
+  pl.billboardMode = B.Mesh.BILLBOARDMODE_Y;
+  pl.material = matCustom(c);
+  pl.__sinSombra = true;
+  var sh = B.MeshBuilder.CreateGround("sombra", {width:c.w*0.95, height:Math.max(0.35, c.d)*1.25}, scene);
+  sh.parent = node; sh.position.y = 0.007;
+  sh.material = matSombra();
+  sh.__sinSombra = true;
+}
 function buildItem(it){
   var node = new B.TransformNode("it"+it.id, scene);
   node.parent = root;
   node.position.set(it.x, DECK_H, it.z);
   node.rotation.y = it.rot || 0;
-  BUILD[it.type](node);
+  if(BUILD[it.type]) BUILD[it.type](node);
+  else if(byType[it.type] && byType[it.type].url) buildCustom(node, byType[it.type]);
+  else return;
   var meshes = node.getChildMeshes();
   meshes.forEach(function(m){
     m.metadata = {itemId: it.id};
-    castShadow(m);
+    if(!m.__sinSombra) castShadow(m);
   });
   nodes[it.id] = {node:node, meshes:meshes};
 }
@@ -1355,6 +1444,12 @@ function setPhotoMode(on){
 var readout = document.getElementById("readout"), flagEl = document.getElementById("flag");
 function sync(){
   var it = selected != null ? itemById(selected) : null;
+  var tam = document.getElementById("tamano");
+  var cc = it ? byType[it.type] : null;
+  if(tam){
+    tam.hidden = !(cc && cc.url);
+    if(cc && cc.url) document.getElementById("anchoVal").textContent = cc.w.toFixed(2).replace(".", ",");
+  }
   if(!it){
     readout.textContent = S.items.length ? S.items.length + " muebles · arrastra el fondo para girar la vista" : "Deck vacío · elige un diseño arriba";
     flagEl.hidden = true;
@@ -1366,13 +1461,29 @@ function sync(){
   }
 }
 var catEl = document.getElementById("catalog");
-CATALOG.forEach(function(c){
-  var b = document.createElement("button");
-  b.className = "cat"; b.type = "button";
-  b.innerHTML = "<b>"+c.name+"</b><span>"+c.w.toFixed(2)+"×"+c.d.toFixed(2)+"</span>";
-  b.addEventListener("click", function(){ addItem(c.type); });
-  catEl.appendChild(b);
-});
+function pintarCatalogo(){
+  catEl.innerHTML = "";
+  CATALOG.concat(S.custom).forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "cat"; b.type = "button";
+    b.innerHTML = "<b>"+c.name+"</b><span>"+c.w.toFixed(2)+"×"+c.d.toFixed(2)+"</span>";
+    b.addEventListener("click", function(){ addItem(c.type); });
+    if(c.url){
+      var x = document.createElement("span");
+      x.className = "quitar"; x.textContent = "×"; x.title = "Quitar del catálogo";
+      x.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        S.items = S.items.filter(function(i){ return i.type !== c.type; });
+        S.custom = S.custom.filter(function(k){ return k.type !== c.type; });
+        delete byType[c.type];
+        selected = null; syncItems(); pintarCatalogo(); sync(); save();
+      });
+      b.appendChild(x);
+    }
+    catEl.appendChild(b);
+  });
+}
+pintarCatalogo();
 var presetEl = document.getElementById("presets");
 PRESETS.forEach(function(p,i){
   var b = document.createElement("button");
@@ -1441,6 +1552,136 @@ document.getElementById("btnClear").addEventListener("click", function(){
 });
 document.getElementById("qHigh").addEventListener("click", function(){ S.quality="alta"; applyQuality(); save(); });
 document.getElementById("qFast").addEventListener("click", function(){ S.quality="rapida"; applyQuality(); save(); });
+
+
+/* ===================== subir la foto de un mueble ===================== */
+var subirEl = document.getElementById("subir");
+var previa = document.getElementById("previa");
+var imgOriginal = null, recorte = null;
+
+function procesarFoto(){
+  if(!imgOriginal) return;
+  var MAX = 560;
+  var k = Math.min(1, MAX/Math.max(imgOriginal.width, imgOriginal.height));
+  var cw = Math.max(2, Math.round(imgOriginal.width*k)), ch = Math.max(2, Math.round(imgOriginal.height*k));
+  var c = document.createElement("canvas"); c.width = cw; c.height = ch;
+  var ctx = c.getContext("2d");
+  ctx.drawImage(imgOriginal, 0, 0, cw, ch);
+
+  if(document.getElementById("quitarFondo").checked){
+    var tol = parseInt(document.getElementById("tolFondo").value, 10);
+    var d = ctx.getImageData(0,0,cw,ch), p = d.data, n = cw*ch;
+    var visto = new Uint8Array(n), pila = [], i, x, y;
+    for(x=0;x<cw;x++){ pila.push(x); pila.push((ch-1)*cw + x); }
+    for(y=0;y<ch;y++){ pila.push(y*cw); pila.push(y*cw + cw-1); }
+    var esq = [0, cw-1, (ch-1)*cw, n-1], ref = [0,0,0], e;
+    for(e=0;e<4;e++){ ref[0]+=p[esq[e]*4]/4; ref[1]+=p[esq[e]*4+1]/4; ref[2]+=p[esq[e]*4+2]/4; }
+    while(pila.length){
+      i = pila.pop();
+      if(i < 0 || i >= n || visto[i]) continue;
+      var dist = Math.abs(p[i*4]-ref[0]) + Math.abs(p[i*4+1]-ref[1]) + Math.abs(p[i*4+2]-ref[2]);
+      if(dist > tol*3) continue;
+      visto[i] = 1; p[i*4+3] = 0;
+      x = i % cw; y = (i/cw)|0;
+      if(x > 0) pila.push(i-1);
+      if(x < cw-1) pila.push(i+1);
+      if(y > 0) pila.push(i-cw);
+      if(y < ch-1) pila.push(i+cw);
+    }
+    /* suavizar el borde para que no quede recortado con tijera */
+    var alfa = new Uint8Array(n);
+    for(i=0;i<n;i++) alfa[i] = p[i*4+3];
+    for(y=1;y<ch-1;y++) for(x=1;x<cw-1;x++){
+      i = y*cw + x;
+      if(alfa[i] === 0) continue;
+      var suma = alfa[i-1]+alfa[i+1]+alfa[i-cw]+alfa[i+cw]+alfa[i];
+      p[i*4+3] = Math.round(suma/5);
+    }
+    ctx.putImageData(d, 0, 0);
+  }
+
+  /* recortar al contenido */
+  var dd = ctx.getImageData(0,0,cw,ch).data;
+  var x0=cw, y0=ch, x1=0, y1=0, xx, yy;
+  for(yy=0;yy<ch;yy++) for(xx=0;xx<cw;xx++){
+    if(dd[(yy*cw+xx)*4+3] > 12){
+      if(xx<x0) x0=xx; if(xx>x1) x1=xx;
+      if(yy<y0) y0=yy; if(yy>y1) y1=yy;
+    }
+  }
+  if(x1 <= x0 || y1 <= y0){ x0=0; y0=0; x1=cw-1; y1=ch-1; }
+  var bw = x1-x0+1, bh = y1-y0+1;
+  var c2 = document.createElement("canvas"); c2.width = bw; c2.height = bh;
+  c2.getContext("2d").drawImage(c, x0, y0, bw, bh, 0, 0, bw, bh);
+  recorte = {url: c2.toDataURL("image/png"), w: bw, h: bh};
+
+  /* vista previa */
+  var pc = previa.getContext("2d");
+  previa.width = 240; previa.height = Math.max(90, Math.round(240*bh/bw));
+  pc.clearRect(0,0,previa.width,previa.height);
+  pc.drawImage(c2, 0, 0, previa.width, previa.height);
+  var anc = parseFloat(document.getElementById("anchoItem").value) || 1;
+  document.getElementById("subirNota").textContent =
+    "Quedará de " + anc.toFixed(2).replace(".",",") + " × " + (anc*bh/bw).toFixed(2).replace(".",",") + " m (ancho × alto).";
+}
+document.getElementById("archivo").addEventListener("change", function(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  var lector = new FileReader();
+  lector.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      imgOriginal = im;
+      var nom = f.name.replace(/\.[a-z0-9]+$/i,"").replace(/[-_]+/g," ").slice(0,28);
+      document.getElementById("nombreItem").value = nom || "Mueble";
+      procesarFoto();
+    };
+    im.src = lector.result;
+  };
+  lector.readAsDataURL(f);
+});
+document.getElementById("quitarFondo").addEventListener("change", procesarFoto);
+document.getElementById("tolFondo").addEventListener("change", procesarFoto);
+document.getElementById("anchoItem").addEventListener("input", function(){ if(recorte) procesarFoto(); });
+document.getElementById("btnSubir").addEventListener("click", function(){ subirEl.hidden = false; });
+document.getElementById("cerrarSubir").addEventListener("click", function(){ subirEl.hidden = true; });
+document.getElementById("agregarItem").addEventListener("click", function(){
+  if(!recorte){ document.getElementById("subirNota").textContent = "Primero elige una foto."; return; }
+  if(S.custom.length >= 12){ document.getElementById("subirNota").textContent = "Ya hay 12 muebles propios; borra alguno."; return; }
+  var anc = Math.max(0.1, Math.min(8, parseFloat(document.getElementById("anchoItem").value) || 1));
+  var c = {
+    type: "foto" + (S.cseq++),
+    name: (document.getElementById("nombreItem").value || "Mueble").slice(0,28),
+    w: anc,
+    alto: anc * recorte.h / recorte.w,
+    d: Math.max(0.35, anc*0.45),
+    url: recorte.url
+  };
+  S.custom.push(c); byType[c.type] = c;
+  pintarCatalogo();
+  subirEl.hidden = true;
+  recorte = null; imgOriginal = null;
+  document.getElementById("archivo").value = "";
+  addItem(c.type);
+  try{ save(); }catch(e){}
+  if(!localStorage.getItem(KEY)) readout.textContent = "Mueble agregado, pero la foto no cupo en la memoria del navegador.";
+});
+
+/* ---- cambiar el tamaño de un mueble subido ---- */
+function reescalar(paso){
+  var it = selected != null ? itemById(selected) : null;
+  if(!it) return;
+  var c = byType[it.type];
+  if(!c || !c.url) return;
+  var nuevo = Math.max(0.2, Math.min(8, Math.round((c.w + paso)*100)/100));
+  c.alto = c.alto * (nuevo / c.w);
+  c.d = Math.max(0.35, nuevo*0.45);
+  c.w = nuevo;
+  if(MATS_CUSTOM[c.type]){ }
+  syncItems(); pintarCatalogo(); sync(); save();
+}
+document.getElementById("menos").addEventListener("click", function(){ reescalar(-0.1); });
+document.getElementById("mas").addEventListener("click", function(){ reescalar(0.1); });
 
 /* ===================== arranque ===================== */
 var had = loadSaved();
