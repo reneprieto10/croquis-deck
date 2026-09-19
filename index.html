@@ -606,26 +606,26 @@ function pbrFoto(name, base, opts){
 var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
-  wood:  pbrFoto("mWood",  "deck",  {tint:"#a89a94"}),
-  stone: pbrFoto("mStone", "stone", {tint:"#c8c0bb"}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#859a4e"}),
-  hedge: pbrFoto("mHedge", "leaves",{tint:"#5c7a3e"}),
-  teak:  pbrFoto("mTeak",  "deck",  {tint:"#a3794c", scale:3}),
-  cushion: pbrFoto("mCush",  "linen", {tint:"#e8e2d6", scale:3}),
-  cushion2:pbrFoto("mCush2", "linen", {tint:"#cdc5b4", scale:3}),
-  canopy:  pbrFoto("mCanopy","linen", {tint:"#efe9dc", scale:2}),
+  wood:  pbrFoto("mWood",  "deck",  {tint:"#8d7659", gain:1.35}),
+  stone: pbrFoto("mStone", "stone", {tint:"#cfc7b4", gain:1.35}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#7e9040", gain:1.35}),
+  hedge: pbrFoto("mHedge", "leaves",{tint:"#46603a", gain:1.30}),
+  teak:  pbrFoto("mTeak",  "deck",  {tint:"#a07548", gain:1.30, scale:3}),
+  cushion: pbrFoto("mCush",  "linen", {tint:"#ece6da", gain:1.25, scale:3}),
+  cushion2:pbrFoto("mCush2", "linen", {tint:"#d3cbba", gain:1.25, scale:3}),
+  canopy:  pbrFoto("mCanopy","linen", {tint:"#f2ece0", gain:1.25, scale:2}),
   tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0}),
   metal: pbr("mMetal", {color:"#4a4d50", roughness:0.55, metallic:0.35}),
   dark:  pbr("mDark",  {color:"#2f3133", roughness:0.6, metallic:0.15}),
-  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#53753c", scale:1.5}),
-  trunk: pbrFoto("mTrunk", "deck",  {tint:"#6a5744", scale:2}),
-  pot:   pbrFoto("mPot",   "stone", {tint:"#b7b0a5", scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#a9a4a2", scale:2}),
+  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#4e6f3c", gain:1.30, scale:1.5}),
+  trunk: pbrFoto("mTrunk", "deck",  {tint:"#6d5742", gain:1.25, scale:2}),
+  pot:   pbrFoto("mPot",   "stone", {tint:"#b9b2a6", gain:1.30, scale:1.5}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#cfc7b4", gain:1.30, scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#2f4a2c", scale:2}),
-  hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#42592c", scale:1.3}),
-  hedgeB: pbrFoto("mHedgeB","leaves",{tint:"#5c7a3e", scale:1.1}),
-  hedgeC: pbrFoto("mHedgeC","leaves",{tint:"#6e8c47", scale:1.5})
+  conifer: pbrFoto("mConif","leaves",{tint:"#2c4429", gain:1.25, scale:2}),
+  hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#3c5730", gain:1.30, scale:1.3}),
+  hedgeB: pbrFoto("mHedgeB","leaves",{tint:"#4e6b3a", gain:1.30, scale:1.1}),
+  hedgeC: pbrFoto("mHedgeC","leaves",{tint:"#5d7c42", gain:1.30, scale:1.5})
 };
 MAT.canopy.backFaceCulling = false;
 var VERDES = [MAT.hedgeA, MAT.hedgeB, MAT.hedgeC];
