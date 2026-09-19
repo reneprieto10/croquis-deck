@@ -101,7 +101,7 @@
       <div class="field"><label for="poolX">Desde izquierda</label><input id="poolX" type="number" step="0.1" min="0" max="35"></div>
       <div class="field"><label for="poolY">Desde el muro</label><input id="poolY" type="number" step="0.1" min="0" max="25"></div>
     </div>
-    <p class="note" id="dimNote">Medidas estimadas desde tu foto (±7%). Corrígelas si tienes las reales.</p>
+    <p class="note" id="dimNote">Sólo se amuebla el paño grande. Los bordes de la piscina quedan de paso.</p>
   </div>
   <div class="slider">
     <div class="row"><label for="hour">Hora del día</label><b id="hourVal">16:00</b></div>
@@ -187,8 +187,8 @@ var byType = {}; CATALOG.forEach(function(c){ byType[c.type]=c; });
 
 /* medidas obtenidas de la foto por fotogrametría */
 var DEFAULT = {
-  deck:{w:15.5, h:7.4},
-  pool:{x:5.0, y:2.1, w:9.6, h:4.4},
+  deck:{w:15.5, h:6.3},
+  pool:{x:5.0, y:1.0, w:9.6, h:4.4},
   hour:16, quality:"alta", items:[], seq:1
 };
 var S = JSON.parse(JSON.stringify(DEFAULT));
@@ -228,6 +228,16 @@ function zonesByArea(){
   out.sort(function(a,b){ return zw(b)*zd(b) - zw(a)*zd(a); });
   return out;
 }
+/* el paño grande del deck: el único lugar donde se amuebla */
+function pano(){
+  var zs = zonesByArea();
+  return zs.length ? zs[0] : geom().oeste;
+}
+function enPano(x, z, rot, c){
+  var f = foot(c, rot||0), P = pano();
+  return x-f.w/2 >= P.x0-0.05 && x+f.w/2 <= P.x1+0.05 &&
+         z-f.d/2 >= P.z0-0.05 && z+f.d/2 <= P.z1+0.05;
+}
 function foot(c, rot){
   var co=Math.abs(Math.cos(rot||0)), si=Math.abs(Math.sin(rot||0));
   return {w: co*c.w + si*c.d, d: si*c.w + co*c.d};
@@ -249,7 +259,7 @@ function freeOf(x, z, c, items, skipId){
   return true;
 }
 function spotFor(type){
-  var c=byType[type], zs=zonesByArea(), i, x, zz, best, bestD, cz;
+  var c=byType[type], zs=[pano()], i, x, zz, best, bestD, cz;
   for(i=0;i<zs.length;i++){
     cz=zoneCenter(zs[i]); best=null; bestD=1e9;
     for(zz=zs[i].z0+0.25; zz<=zs[i].z1-0.25; zz+=0.25){
@@ -261,7 +271,7 @@ function spotFor(type){
     }
     if(best) return best;
   }
-  var g=geom(), c2=zoneCenter(g.oeste);
+  var c2=zoneCenter(pano());
   return {x:c2.x, z:c2.z};
 }
 /* paso libre a los lados del mueble, dentro de su franja */
@@ -297,9 +307,6 @@ var PRESETS = [
     uno(out,"sombrilla", xr - 1.85, z0 + 0.9, 0);
     uno(out,"sombrilla", xr - 1.85, z0 + 3.2, 0);
     /* si la franja del muro da el ancho, otra fila contra el muro */
-    if(zoneUsable(N) && zd(N) >= 0.70 + PASO + 0.2){
-      fila(out, "reposera", 4, 0, N.z0 + 0.55, (N.x0+N.x1)/2, 2.25);
-    }
     uno(out,"ducha", 0.7, 0.7, 0);
     uno(out,"toalla", 1.6, 0.7, 0);
     uno(out,"macetero", 0.6, S.deck.h-0.6, 0);
@@ -317,10 +324,6 @@ var PRESETS = [
     uno(out,"sillon", cx+1.65, cz, -Math.PI/2);
     uno(out,"mesacentro", cx, cz, 0);
     uno(out,"macetero", 0.6, O.z1-0.6, 0);
-    if(zoneUsable(N) && zd(N) >= 0.70 + PASO + 0.2){
-      fila(out,"reposera", 3, 0, N.z0 + 0.55, (N.x0+N.x1)/2, 2.25);
-      uno(out,"sombrilla", N.x0 + 2.0, N.z0 + Math.min(1.35, zd(N)-1.4), 0);
-    }
     return out;
   }},
   {name:"Comedor", build:function(){
@@ -336,9 +339,6 @@ var PRESETS = [
     uno(out,"parrilla", 0.85, 0.75, 0);
     uno(out,"reposera", O.x1-1.15, O.z1-1.1, 0);
     uno(out,"reposera", O.x1-1.15, O.z1-2.25, 0);
-    if(zoneUsable(N) && zd(N) >= 0.70 + PASO + 0.2){
-      fila(out,"reposera", 3, 0, N.z0 + 0.55, (N.x0+N.x1)/2, 2.25);
-    }
     return out;
   }},
   {name:"Mínimo", build:function(){
@@ -348,9 +348,6 @@ var PRESETS = [
     uno(out,"reposera", O.x1-1.15, O.z1-1.2, 0);
     uno(out,"macetero", 0.6, 0.6, 0);
     uno(out,"macetero", 0.6, O.z1-0.6, 0);
-    if(zoneUsable(N) && zd(N) >= 0.70 + PASO + 0.2){
-      fila(out,"reposera", 2, 0, N.z0 + 0.55, (N.x0+N.x1)/2, 2.25);
-    }
     return out;
   }}
 ];
@@ -562,15 +559,23 @@ function texTint(name, file, tint, gain){
   dt.wrapU = dt.wrapV = B.Texture.WRAP_ADDRESSMODE;
   dt.anisotropicFilteringLevel = 8;
   var c = B.Color3.FromHexString(tint), img = new Image();
+  gain = gain || 1;                       /* 1 = el promedio queda igual al tinte */
   img.onload = function(){
     var ctx = dt.getContext();
     ctx.drawImage(img, 0, 0, SZ, SZ);
-    var d = ctx.getImageData(0,0,SZ,SZ), p = d.data, i, l;
-    for(i=0;i<p.length;i+=4){
-      l = (0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2]) * gain;
-      p[i]   = Math.min(255, l*c.r);
-      p[i+1] = Math.min(255, l*c.g);
-      p[i+2] = Math.min(255, l*c.b);
+    var d = ctx.getImageData(0,0,SZ,SZ), p = d.data, n = p.length/4, i, suma = 0;
+    var lum = new Float32Array(n);
+    for(i=0;i<n;i++){
+      lum[i] = 0.299*p[i*4] + 0.587*p[i*4+1] + 0.114*p[i*4+2];
+      suma += lum[i];
+    }
+    var media = (suma/n) || 128;
+    for(i=0;i<n;i++){
+      /* variación relativa de la foto del material, suavizada, sobre el color real del patio */
+      var k = Math.pow(lum[i]/media, 0.85) * gain;
+      p[i*4]   = Math.min(255, c.r*255*k);
+      p[i*4+1] = Math.min(255, c.g*255*k);
+      p[i*4+2] = Math.min(255, c.b*255*k);
     }
     ctx.putImageData(d, 0, 0);
     dt.update(true);
@@ -591,32 +596,33 @@ function pbrFoto(name, base, opts){
   m.metallicTexture = T(base + "_arm.jpg", true, opts.scale);
   m.useAmbientOcclusionFromMetallicTextureRed = true;
   m.useRoughnessFromMetallicTextureGreen = true;
-  m.useMetallnessFromMetallicTextureBlue = true;
-  m.metallic = 1; m.roughness = 1;          /* mandan los mapas */
-  m.environmentIntensity = 1.0;
+  m.useMetallnessFromMetallicTextureBlue = false;   /* madera, tela y piedra no son metal */
+  m.metallic = 0; m.roughness = 1;                  /* la rugosidad manda el mapa */
+  m.environmentIntensity = 0.85;
+  m.specularIntensity = 0.35;                       /* sin destellos duros */
   if(opts.rough != null) m.roughness = opts.rough;
   return m;
 }
 var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
-  wood:  pbrFoto("mWood",  "deck",  {tint:"#b6a794", gain:1.15}),
-  stone: pbrFoto("mStone", "stone", {tint:"#eadfc6", gain:1.25}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#9ec964", gain:1.45}),
-  hedge: pbrFoto("mHedge", "leaves",{tint:"#7fb054", gain:1.6}),
-  teak:  pbrFoto("mTeak",  "deck",  {tint:"#c08f57", gain:1.2, scale:3}),
-  cushion: pbrFoto("mCush",  "linen", {tint:"#f7f1e6", gain:1.45, scale:3}),
-  cushion2:pbrFoto("mCush2", "linen", {tint:"#ddd3c0", gain:1.4, scale:3}),
-  canopy:  pbrFoto("mCanopy","linen", {tint:"#f9f3e6", gain:1.5, scale:2}),
-  tile:  pbr("mTile",  {tex:texTile,  roughness:0.20, metallic:0.02}),
-  metal: pbr("mMetal", {color:"#3c3f42", roughness:0.30, metallic:0.9}),
-  dark:  pbr("mDark",  {color:"#2a2b2d", roughness:0.42, metallic:0.35}),
-  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#74a84a", gain:1.5, scale:1.5}),
-  trunk: pbrFoto("mTrunk", "deck",  {tint:"#7d6449", gain:1.1, scale:2}),
-  pot:   pbrFoto("mPot",   "stone", {tint:"#d9d3c5", gain:1.2, scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#e9e1cd", gain:1.25, scale:2}),
+  wood:  pbrFoto("mWood",  "deck",  {tint:"#8b8480"}),
+  stone: pbrFoto("mStone", "stone", {tint:"#c6bdb4"}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#6f8443"}),
+  hedge: pbrFoto("mHedge", "leaves",{tint:"#3f4d35"}),
+  teak:  pbrFoto("mTeak",  "deck",  {tint:"#a3794c", scale:3}),
+  cushion: pbrFoto("mCush",  "linen", {tint:"#ded8cb", scale:3}),
+  cushion2:pbrFoto("mCush2", "linen", {tint:"#c6bfae", scale:3}),
+  canopy:  pbrFoto("mCanopy","linen", {tint:"#e2dbcc", scale:2}),
+  tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0}),
+  metal: pbr("mMetal", {color:"#4a4d50", roughness:0.55, metallic:0.35}),
+  dark:  pbr("mDark",  {color:"#2f3133", roughness:0.6, metallic:0.15}),
+  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#4a6b3a", scale:1.5}),
+  trunk: pbrFoto("mTrunk", "deck",  {tint:"#6a5744", scale:2}),
+  pot:   pbrFoto("mPot",   "stone", {tint:"#b7b0a5", scale:1.5}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#c9c2b4", scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#5a8347", gain:1.35, scale:2})
+  conifer: pbrFoto("mConif","leaves",{tint:"#35492f", scale:2})
 };
 MAT.canopy.backFaceCulling = false;
 
@@ -665,7 +671,7 @@ function makeProbe(){
   try{
     hdr = new B.HDRCubeTexture("assets/hdri/sky.hdr", scene, 256, false, true, false, true);
     scene.environmentTexture = hdr;
-    scene.environmentIntensity = 1.15;
+    scene.environmentIntensity = 0.9;
   }catch(e){ hdr = null; }
 }
 
@@ -871,9 +877,9 @@ function buildWater(){
     waterMat.waveSpeed = 0.6;
     waterMat.bumpHeight = 0.09;
     waterMat.windDirection = new B.Vector2(1, 0.35);
-    waterMat.waterColor = new B.Color3(0.10, 0.50, 0.58);
-    waterMat.colorBlendFactor = 0.52;
-    waterMat.waterColor2 = new B.Color3(0.06, 0.40, 0.52);
+    waterMat.waterColor = new B.Color3(0.10, 0.36, 0.46);
+    waterMat.colorBlendFactor = 0.55;
+    waterMat.waterColor2 = new B.Color3(0.06, 0.28, 0.40);
     waterMat.colorBlendFactor2 = 0.62;
     waterMat.alpha = 1.0;
   } else {
@@ -917,7 +923,8 @@ function buildZones(){
     if(zw(z) <= 0.05 || zd(z) <= 0.05) return;
     var m = B.MeshBuilder.CreateGround("zone_"+k, {width:zw(z)-0.04, height:zd(z)-0.04}, scene);
     m.position.set((z.x0+z.x1)/2, DECK_H+0.006, (z.z0+z.z1)/2);
-    m.material = zoneUsable(z) ? matZoneOk : matZoneNo;
+    var P = pano();
+    m.material = (z.x0===P.x0 && z.z0===P.z0 && z.x1===P.x1) ? matZoneOk : matZoneNo;
     m.isPickable = false; m.setEnabled(showZones);
     zoneMeshes.push(m);
   });
@@ -1087,6 +1094,7 @@ function problem(it){
   }
   if(onWater) return "sobre el agua";
   if(offDeck) return "fuera del deck";
+  if(!enPano(it.x, it.z, it.rot||0, c)) return "fuera del paño grande";
   var libre = paso(it);
   if(libre != null && libre < PASO) return "deja " + Math.round(Math.max(0,libre)*100) + " cm de paso";
   return null;
@@ -1119,7 +1127,7 @@ function removeSel(){
 }
 function applyPreset(p){
   S.items = p.build().filter(function(o){
-    return fitsAt(o.x, o.z, o.rot||0, byType[o.type]);
+    return fitsAt(o.x, o.z, o.rot||0, byType[o.type]) && enPano(o.x, o.z, o.rot||0, byType[o.type]);
   }).map(function(o){
     return {id:S.seq++, type:o.type, x:Math.round(o.x*20)/20, z:Math.round(o.z*20)/20, rot:o.rot||0};
   });
@@ -1212,11 +1220,10 @@ function applyQuality(){
     if(!pipeline){
       pipeline = new B.DefaultRenderingPipeline("post", true, scene, [camera]);
       pipeline.fxaaEnabled = true;
-      pipeline.bloomEnabled = true; pipeline.bloomThreshold = 0.85; pipeline.bloomWeight = 0.22; pipeline.bloomKernel = 48;
-      pipeline.sharpenEnabled = true; pipeline.sharpen.edgeAmount = 0.22;
+      pipeline.bloomEnabled = false;      /* el bloom convertía cada reflejo en una luz */
+      pipeline.sharpenEnabled = false;
     }
     pipeline.samples = high ? 4 : 1;
-    pipeline.bloomEnabled = high;
   }catch(e){ pipeline = null; }
   try{
     if(high && !ssao && engine.webGLVersion > 1){
@@ -1389,7 +1396,7 @@ document.getElementById("btnZonas").addEventListener("click", function(){
   this.classList.toggle("on", showZones);
   var g = geom();
   readout.textContent = showZones
-    ? "Verde: cabe un mueble con paso. Naranjo: franja de " + Math.min(zd(g.sur), zw(g.este)).toFixed(2).replace(".",",") + " m, muy angosta."
+    ? "Verde: el paño grande, " + zw(pano()).toFixed(1).replace(".",",") + " × " + zd(pano()).toFixed(1).replace(".",",") + " m. Naranjo: bordes de paso."
     : S.items.length + " muebles en el deck";
 });
 document.getElementById("btnPanel").addEventListener("click", function(){
