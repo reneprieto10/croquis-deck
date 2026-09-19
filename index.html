@@ -1351,10 +1351,6 @@ document.getElementById("btnZonas").addEventListener("click", function(){
     ? "Verde: cabe un mueble con paso. Naranjo: franja de " + Math.min(zd(g.sur), zw(g.este)).toFixed(2).replace(".",",") + " m, muy angosta."
     : S.items.length + " muebles en el deck";
 });
-document.getElementById("btnRef").addEventListener("click", function(){
-  var p = document.getElementById("photo");
-  p.classList.toggle("show"); this.classList.toggle("on", p.classList.contains("show"));
-});
 document.getElementById("btnPanel").addEventListener("click", function(){
   var s2 = document.getElementById("side"); s2.hidden = !s2.hidden;
   this.classList.toggle("on", s2.hidden);
