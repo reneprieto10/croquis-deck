@@ -601,15 +601,16 @@ function pbrFoto(name, base, opts){
   m.environmentIntensity = 0.85;
   m.specularIntensity = 0.35;                       /* sin destellos duros */
   if(opts.rough != null) m.roughness = opts.rough;
+  if(opts.env != null) m.environmentIntensity = opts.env;
   return m;
 }
 var texTile = texFromCanvas("tile", tileCanvas());
 
 var MAT = {
-  wood:  pbrFoto("mWood",  "deck",  {tint:"#8d7659", gain:1.35}),
-  stone: pbrFoto("mStone", "stone", {tint:"#ded5c0", gain:1.15}),
-  grass: pbrFoto("mGrass", "grass", {tint:"#7e873c", gain:1.0}),
-  hedge: pbrFoto("mHedge", "leaves",{tint:"#46603a", gain:1.30}),
+  wood:  pbrFoto("mWood",  "deck",  {tint:"#86705c", gain:1.22}),
+  stone: pbrFoto("mStone", "stone", {tint:"#e3dac6", gain:1.12, env:1.45}),
+  grass: pbrFoto("mGrass", "grass", {tint:"#656c30", gain:1.0}),
+  hedge: pbrFoto("mHedge", "leaves",{tint:"#384c2e", gain:1.30}),
   teak:  pbrFoto("mTeak",  "deck",  {tint:"#a07548", gain:1.30, scale:3}),
   cushion: pbrFoto("mCush",  "linen", {tint:"#ece6da", gain:1.25, scale:3}),
   cushion2:pbrFoto("mCush2", "linen", {tint:"#d3cbba", gain:1.25, scale:3}),
@@ -617,15 +618,15 @@ var MAT = {
   tile:  pbr("mTile",  {tex:texTile,  roughness:0.35, metallic:0.0, color:"#cfe6ee"}),
   metal: pbr("mMetal", {color:"#4a4d50", roughness:0.55, metallic:0.35}),
   dark:  pbr("mDark",  {color:"#2f3133", roughness:0.6, metallic:0.15}),
-  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#4e6f3c", gain:1.30, scale:1.5}),
+  leaf:  pbrFoto("mLeaf",  "leaves",{tint:"#3e5930", gain:1.30, scale:1.5}),
   trunk: pbrFoto("mTrunk", "deck",  {tint:"#6d5742", gain:1.25, scale:2}),
   pot:   pbrFoto("mPot",   "stone", {tint:"#b9b2a6", gain:1.30, scale:1.5}),
-  coping:pbrFoto("mCop",   "stone", {tint:"#ded5c0", gain:1.15, scale:2}),
+  coping:pbrFoto("mCop",   "stone", {tint:"#e3dac6", gain:1.12, env:1.35, scale:2}),
   soil:  pbr("mSoil",  {color:"#3a3128", roughness:1.0}),
-  conifer: pbrFoto("mConif","leaves",{tint:"#2c4429", gain:1.25, scale:2}),
-  hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#3c5730", gain:1.30, scale:1.3}),
-  hedgeB: pbrFoto("mHedgeB","leaves",{tint:"#4e6b3a", gain:1.30, scale:1.1}),
-  hedgeC: pbrFoto("mHedgeC","leaves",{tint:"#5d7c42", gain:1.30, scale:1.5})
+  conifer: pbrFoto("mConif","leaves",{tint:"#233620", gain:1.25, scale:2}),
+  hedgeA: pbrFoto("mHedgeA","leaves",{tint:"#30462a", gain:1.30, scale:1.3}),
+  hedgeB: pbrFoto("mHedgeB","leaves",{tint:"#3e552e", gain:1.30, scale:1.1}),
+  hedgeC: pbrFoto("mHedgeC","leaves",{tint:"#4a6335", gain:1.30, scale:1.5})
 };
 MAT.canopy.backFaceCulling = false;
 var VERDES = [MAT.hedgeA, MAT.hedgeB, MAT.hedgeC];
@@ -896,9 +897,9 @@ function buildWater(){
     waterMat.waveSpeed = 0.6;
     waterMat.bumpHeight = 0.09;
     waterMat.windDirection = new B.Vector2(1, 0.35);
-    waterMat.waterColor = new B.Color3(0.23, 0.52, 0.60);
-    waterMat.colorBlendFactor = 0.72;
-    waterMat.waterColor2 = new B.Color3(0.16, 0.44, 0.55);
+    waterMat.waterColor = new B.Color3(0.30, 0.60, 0.68);
+    waterMat.colorBlendFactor = 0.85;
+    waterMat.waterColor2 = new B.Color3(0.22, 0.52, 0.62);
     waterMat.colorBlendFactor2 = 0.62;
     waterMat.alpha = 1.0;
   } else {
